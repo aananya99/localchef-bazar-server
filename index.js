@@ -19,7 +19,6 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   },
 });
-console.log(process.env.DB_USER, process.env.DB_PASSWORD);
 
 async function run() {
   try {
@@ -74,12 +73,32 @@ async function run() {
         userEmail,
         mealId,
       });
-
       if (exists) {
         return res.status(409).send({ message: "Meal already favourited" });
       }
       const favorite = req.body;
       const result = await favoriteCollection.insertOne(favorite);
+      res.send(result);
+    });
+
+    // 07.
+    app.get("/favorites", async (req, res) => {
+      const email = req.query.email;
+      if (!email) {
+        return res.status(400).send({ message: "Email is required" });
+      }
+      const result = await favoriteCollection
+        .find({ userEmail: email })
+        .toArray();
+      res.send(result);
+    });
+
+    // 08.
+    app.delete("/favorites/:id", async (req, res) => {
+      const id = req.params.id;
+      const result = await favoriteCollection.deleteOne({
+        _id: new ObjectId(id),
+      });
       res.send(result);
     });
 
