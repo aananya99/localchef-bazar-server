@@ -29,6 +29,8 @@ async function run() {
     const mealsCollection = db.collection("meals");
     const reviewsCollection = db.collection("reviews");
     const ordersCollection = db.collection("orders");
+    const favoriteCollection = db.collection("favorites");
+
     // --------meals api----------
     // 01.
     app.get("/meals", async (req, res) => {
@@ -43,7 +45,6 @@ async function run() {
       const result = await mealsCollection.findOne({ _id: objectId });
       res.send(result);
     });
-
     // ----------review api---------------
     // 02.
     app.get("/reviews", async (req, res) => {
@@ -65,7 +66,23 @@ async function run() {
         .toArray();
       res.send(result);
     });
-    
+    // ---- favorites api-----------
+    // 06.
+    app.post("/favorites", async (req, res) => {
+      const { userEmail, mealId } = req.body;
+      const exists = await favoriteCollection.findOne({
+        userEmail,
+        mealId,
+      });
+
+      if (exists) {
+        return res.status(409).send({ message: "Meal already favourited" });
+      }
+      const favorite = req.body;
+      const result = await favoriteCollection.insertOne(favorite);
+      res.send(result);
+    });
+
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
