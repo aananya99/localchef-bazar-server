@@ -2,7 +2,7 @@ const express = require("express");
 require("dotenv").config();
 const app = express();
 const cors = require("cors");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const port = process.env.PORT || 3000;
 
 // middleware
@@ -28,7 +28,7 @@ async function run() {
     const db = client.db("localchef_user");
     const mealsCollection = db.collection("meals");
     const reviewsCollection = db.collection("reviews");
-
+    const ordersCollection = db.collection("orders");
     // --------meals api----------
     // 01.
     app.get("/meals", async (req, res) => {
@@ -36,13 +36,27 @@ async function run() {
       res.send(result);
     });
 
-    // ----------review api
+    // 03.
+    app.get("/meals/:id", async (req, res) => {
+      const { id } = req.params;
+      const objectId = new ObjectId(id);
+      const result = await mealsCollection.findOne({ _id: objectId });
+      res.send(result);
+    });
+
+    // ----------review api---------------
     // 02.
     app.get("/reviews", async (req, res) => {
       const result = await reviewsCollection.find().toArray();
       res.send(result);
     });
-
+    // -----------orders api---------
+    // 04.
+    app.post("/orders", async (req, res) => {
+      const order = req.body;
+      const result = await ordersCollection.insertOne(order);
+      res.send(result);
+    });
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
@@ -55,7 +69,7 @@ async function run() {
 run().catch(console.dir);
 
 app.get("/", (req, res) => {
-  res.send("Hello World!");
+  res.send("localchef bazar");
 });
 
 app.listen(port, () => {
