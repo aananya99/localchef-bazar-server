@@ -56,6 +56,39 @@ async function run() {
     const reviewsCollection = db.collection("reviews");
     const ordersCollection = db.collection("orders");
     const favoriteCollection = db.collection("favorites");
+    const usersCollection = db.collection("users");
+    const requestsCollection = db.collection("requests");
+
+    // --------users api--------
+    // 11
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      user.role = "user";
+      user.status = "active";
+      user.createdAt = new Date();
+
+      const result = await usersCollection.insertOne(user);
+      res.send(result);
+    });
+    // 12
+    app.get("/users/:email", async (req, res) => {
+      const email = req.params.email;
+      const result = await usersCollection.findOne({ email });
+      res.send(result);
+    });
+
+    // ------requests api-------
+    // 13.
+    app.post("/requests", async (req, res) => {
+      const request = req.body;
+      const result = await requestsCollection.insertOne(request);
+      res.send(result);
+    });
+    // 14.
+    app.get("/requests", async (req, res) => {
+      const request = await requestsCollection.find().toArray();
+      res.send(request);
+    });
 
     // --------meals api----------
     // 01.
@@ -77,7 +110,7 @@ async function run() {
       const result = await reviewsCollection.find().toArray();
       res.send(result);
     });
-    // ,my reviews
+    // 10.my reviews
     app.get("/reviews", async (req, res) => {
       const email = req.query.email;
       const result = await reviewsCollection
