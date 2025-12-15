@@ -5,10 +5,37 @@ const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const port = process.env.PORT || 3000;
 
+// firebase admin sdk
+const admin = require("firebase-admin");
+
+const serviceAccount = require("./localchef-bazar-project-firebase-adminsdk.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
+
 // middleware
 app.use(express.json());
 app.use(cors());
 
+// verify token
+const verifyFBToken = async (req, res, next) => {
+  console.log("headers in the middleware", req.headers.authorization);
+  const token = req.headers.authorization;
+  if (!token) {
+    return res.status(401).send({ message: "unauthorized access" });
+  }
+
+  try {
+    const idToken = token.split(" ")[1];
+    const decoded = await admin.auth().verifyIdToken(idToken);
+    console.log("decoded in the token", decoded);
+    req.decoded_email = decoded.email;
+    next();
+  } catch {
+    return res.status(401).send({ message: "unauthorized access" });
+  }
+};
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.0rghqsk.mongodb.net/?appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -46,8 +73,22 @@ async function run() {
     });
     // ----------review api---------------
     // 02.
-    app.get("/reviews", async (req, res) => {
+    app.get("/all-reviews", async (req, res) => {
       const result = await reviewsCollection.find().toArray();
+      res.send(result);
+    });
+    // ,my reviews
+    app.get("/reviews", async (req, res) => {
+      const email = req.query.email;
+      const result = await reviewsCollection
+        .find({ userEmail: email })
+        .toArray();
+      res.send(result);
+    });
+    // 09.
+    app.post("/reviews", async (req, res) => {
+      const review = req.body;
+      const result = await reviewsCollection.insertOne(review);
       res.send(result);
     });
     // -----------orders api---------
@@ -58,8 +99,9 @@ async function run() {
       res.send(result);
     });
     // 05.
-    app.get("/orders", async (req, res) => {
+    app.get("/orders", verifyFBToken, async (req, res) => {
       const email = req.query.email;
+      // console.log("headers", req.headers);
       const result = await ordersCollection
         .find({ userEmail: email })
         .toArray();
@@ -77,6 +119,7 @@ async function run() {
         return res.status(409).send({ message: "Meal already favourited" });
       }
       const favorite = req.body;
+
       const result = await favoriteCollection.insertOne(favorite);
       res.send(result);
     });
