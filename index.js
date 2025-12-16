@@ -152,6 +152,48 @@ async function run() {
       const result = await mealsCollection.findOne({ _id: objectId });
       res.send(result);
     });
+
+    // 16.
+    app.post("/meals", async (req, res) => {
+      const meal = req.body;
+      meal.createdAt = new Date();
+      const result = await mealsCollection.insertOne(meal);
+      res.send(result);
+    });
+    // 17.
+    app.get("/meals/chef/:email", async (req, res) => {
+      const email = req.params.email;
+      const result = await mealsCollection.find({ userEmail: email }).toArray();
+      res.send(result);
+    });
+    // 18
+    app.delete("/meals/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+
+      const result = await mealsCollection.deleteOne(query);
+      res.send(result);
+    });
+    // 19.
+    app.put("/meals/:id", async (req, res) => {
+      const id = req.params.id;
+      const updatedMeal = req.body;
+
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          foodName: updatedMeal.foodName,
+          price: updatedMeal.price,
+          ingredients: updatedMeal.ingredients,
+          estimatedDeliveryTime: updatedMeal.estimatedDeliveryTime,
+          chefExperience: updatedMeal.chefExperience,
+        },
+      };
+
+      const result = await mealsCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
     // ----------review api---------------
     // 02.
     app.get("/all-reviews", async (req, res) => {
