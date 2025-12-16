@@ -76,7 +76,13 @@ async function run() {
       const result = await usersCollection.findOne({ email });
       res.send(result);
     });
-
+    // 16.
+    app.get("/users/:email/role", async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const user = await usersCollection.findOne(query);
+      res.send({ role: user?.role || "user" });
+    });
     // ------requests api-------
     // 13.
     app.post("/requests", async (req, res) => {
@@ -88,6 +94,48 @@ async function run() {
     app.get("/requests", async (req, res) => {
       const request = await requestsCollection.find().toArray();
       res.send(request);
+    });
+    // 15.
+    app.patch("/requests/:id", async (req, res) => {
+      const { requestStatus } = req.body;
+      const id = req.params.id;
+
+      // find request first
+      const request = await requestsCollection.findOne({
+        _id: new ObjectId(id),
+      });
+
+      if (!request) {
+        return res.status(404).send({ message: "Request not found" });
+      }
+
+      // update request status
+      await requestsCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { requestStatus } }
+      );
+
+      // if approved → update user role
+      if (requestStatus === "approved") {
+        const updateUserDoc = {};
+
+        if (request.requestType === "chef") {
+          const chefId = `chef-${Math.floor(1000 + Math.random() * 9000)}`;
+          updateUserDoc.role = "chef";
+          updateUserDoc.chefId = chefId;
+        }
+
+        if (request.requestType === "admin") {
+          updateUserDoc.role = "admin";
+        }
+
+        await usersCollection.updateOne(
+          { email: request.userEmail },
+          { $set: updateUserDoc }
+        );
+      }
+
+      res.send({ success: true });
     });
 
     // --------meals api----------
