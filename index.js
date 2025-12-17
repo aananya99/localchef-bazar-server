@@ -222,14 +222,27 @@ async function run() {
       res.send(result);
     });
     // 05.
+    // app.get("/orders", verifyFBToken, async (req, res) => {
+    //   const email = req.query.email;
+    //   // console.log("headers", req.headers);
+    //   const result = await ordersCollection
+    //     .find({ userEmail: email })
+    //     .toArray();
+    //   res.send(result);
+    // });
+    // 20.
     app.get("/orders", verifyFBToken, async (req, res) => {
-      const email = req.query.email;
-      // console.log("headers", req.headers);
-      const result = await ordersCollection
-        .find({ userEmail: email })
-        .toArray();
+      const { email, chefId } = req.query;
+
+      let query = {};
+
+      if (email) query.userEmail = email;
+      if (chefId) query.chefId = chefId;
+
+      const result = await ordersCollection.find(query).toArray();
       res.send(result);
     });
+
     // ---- favorites api-----------
     // 06.
     app.post("/favorites", async (req, res) => {
