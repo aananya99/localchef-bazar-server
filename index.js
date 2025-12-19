@@ -38,6 +38,9 @@ const verifyFBToken = async (req, res, next) => {
 };
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.0rghqsk.mongodb.net/?appName=Cluster0`;
 
+// stripe
+const stripe = require("stripe")(process.env.STARIPE_SECRET);
+
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
   serverApi: {
@@ -70,12 +73,6 @@ async function run() {
       const result = await usersCollection.insertOne(user);
       res.send(result);
     });
-    // 12
-    app.get("/users/:email", async (req, res) => {
-      const email = req.params.email;
-      const result = await usersCollection.findOne({ email });
-      res.send(result);
-    });
     // 16.
     app.get("/users/:email/role", async (req, res) => {
       const email = req.params.email;
@@ -83,6 +80,13 @@ async function run() {
       const user = await usersCollection.findOne(query);
       res.send({ role: user?.role || "user" });
     });
+    // 12
+    app.get("/users/:email", async (req, res) => {
+      const email = req.params.email;
+      const result = await usersCollection.findOne({ email });
+      res.send(result);
+    });
+
     // ------requests api-------
     // 13.
     app.post("/requests", async (req, res) => {
@@ -141,7 +145,10 @@ async function run() {
     // --------meals api----------
     // 01.
     app.get("/meals", async (req, res) => {
-      const result = await mealsCollection.find().toArray();
+      const result = await mealsCollection
+        .find({})
+        .sort({ createdAt: -1 })
+        .toArray();
       res.send(result);
     });
 
@@ -214,6 +221,20 @@ async function run() {
       const result = await reviewsCollection.insertOne(review);
       res.send(result);
     });
+    app.delete("/reviews/:id", async (req, res) => {
+  const id = req.params.id;
+  const result = await reviewsCollection.deleteOne({ _id: new ObjectId(id) });
+  res.send(result);
+});
+app.put("/reviews/:id", async (req, res) => {
+  const id = req.params.id;
+  const updatedReview = req.body; // { comment, rating }
+  const result = await reviewsCollection.updateOne(
+    { _id: new ObjectId(id) },
+    { $set: updatedReview }
+  );
+  res.send(result);
+});
     // -----------orders api---------
     // 04.
     app.post("/orders", async (req, res) => {
@@ -240,6 +261,18 @@ async function run() {
       if (chefId) query.chefId = chefId;
 
       const result = await ordersCollection.find(query).toArray();
+      res.send(result);
+    });
+    // 21.
+    app.patch("/orders/:id", async (req, res) => {
+      const { id } = req.params;
+      const { orderStatus, paymentStatus } = req.body;
+
+      const result = await ordersCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { orderStatus, paymentStatus } }
+      );
+
       res.send(result);
     });
 
@@ -279,6 +312,30 @@ async function run() {
         _id: new ObjectId(id),
       });
       res.send(result);
+    });
+    // ----------payment api ---------
+    app.post("/create-checkout-session", async (req, res) => {
+      const { orderId, price, quantity } = req.body;
+
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ["card"],
+        line_items: [
+          {
+            price_data: {
+              currency: "bdt",
+              product_data: { name: `Order #${orderId}` },
+              unit_amount: price * quantity * 100,
+            },
+            quantity: 1,
+          },
+        ],
+        mode: "payment",
+        success_url: `${process.env.SITE_DOMAIN}/dashboard/payment/success?orderId=${orderId}`,
+
+        cancel_url: `${process.env.SITE_DOMAIN}/my-orders`,
+      });
+
+      res.send({ id: session.id, url: session.url });
     });
 
     await client.db("admin").command({ ping: 1 });
