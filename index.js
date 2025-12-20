@@ -64,6 +64,11 @@ async function run() {
 
     // --------users api--------
     // 11
+    app.get("/all-users", async (req, res) => {
+      const result = await usersCollection.find().toArray();
+      res.send(result);
+    });
+
     app.post("/users", async (req, res) => {
       const user = req.body;
       user.role = "user";
@@ -145,11 +150,30 @@ async function run() {
     // --------meals api----------
     // 01.
     app.get("/meals", async (req, res) => {
-      const result = await mealsCollection
-        .find({})
+      const page = parseInt(req.query.page);
+      const limit = parseInt(req.query.limit);
+
+      if (!page || !limit) {
+        const result = await mealsCollection
+          .find()
+          .sort({ createdAt: -1 })
+          .toArray();
+        return res.send(result);
+      }
+
+      // Pagination mode
+      const skip = (page - 1) * limit;
+
+      const meals = await mealsCollection
+        .find()
         .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
         .toArray();
-      res.send(result);
+
+      const totalMeals = await mealsCollection.countDocuments();
+
+      res.send({ meals, totalMeals });
     });
 
     // 03.
@@ -222,19 +246,21 @@ async function run() {
       res.send(result);
     });
     app.delete("/reviews/:id", async (req, res) => {
-  const id = req.params.id;
-  const result = await reviewsCollection.deleteOne({ _id: new ObjectId(id) });
-  res.send(result);
-});
-app.put("/reviews/:id", async (req, res) => {
-  const id = req.params.id;
-  const updatedReview = req.body; // { comment, rating }
-  const result = await reviewsCollection.updateOne(
-    { _id: new ObjectId(id) },
-    { $set: updatedReview }
-  );
-  res.send(result);
-});
+      const id = req.params.id;
+      const result = await reviewsCollection.deleteOne({
+        _id: new ObjectId(id),
+      });
+      res.send(result);
+    });
+    app.put("/reviews/:id", async (req, res) => {
+      const id = req.params.id;
+      const updatedReview = req.body; // { comment, rating }
+      const result = await reviewsCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: updatedReview }
+      );
+      res.send(result);
+    });
     // -----------orders api---------
     // 04.
     app.post("/orders", async (req, res) => {
