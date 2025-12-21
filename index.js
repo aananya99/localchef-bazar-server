@@ -64,7 +64,7 @@ async function run() {
 
     // --------users api--------
     // 11
-    app.get("/all-users", async (req, res) => {
+    app.get("/all-users",verifyFBToken, async (req, res) => {
       const result = await usersCollection.find().toArray();
       res.send(result);
     });
@@ -86,7 +86,7 @@ async function run() {
       res.send({ role: user?.role || "user" });
     });
     // 12
-    app.get("/users/:email", async (req, res) => {
+    app.get("/users/:email",verifyFBToken, async (req, res) => {
       const email = req.params.email;
       const result = await usersCollection.findOne({ email });
       res.send(result);
@@ -94,7 +94,7 @@ async function run() {
 
     // ------requests api-------
     // 13.
-    app.post("/requests", async (req, res) => {
+    app.post("/requests",verifyFBToken, async (req, res) => {
       const request = req.body;
       const result = await requestsCollection.insertOne(request);
       res.send(result);
@@ -105,7 +105,7 @@ async function run() {
       res.send(request);
     });
     // 15.
-    app.patch("/requests/:id", async (req, res) => {
+    app.patch("/requests/:id",verifyFBToken, async (req, res) => {
       const { requestStatus } = req.body;
       const id = req.params.id;
 
@@ -185,7 +185,7 @@ async function run() {
     });
 
     // 16.
-    app.post("/meals", async (req, res) => {
+    app.post("/meals", verifyFBToken,async (req, res) => {
       const meal = req.body;
       meal.createdAt = new Date();
       const result = await mealsCollection.insertOne(meal);
@@ -198,7 +198,7 @@ async function run() {
       res.send(result);
     });
     // 18
-    app.delete("/meals/:id", async (req, res) => {
+    app.delete("/meals/:id",verifyFBToken, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
 
@@ -206,7 +206,7 @@ async function run() {
       res.send(result);
     });
     // 19.
-    app.put("/meals/:id", async (req, res) => {
+    app.put("/meals/:id",verifyFBToken, async (req, res) => {
       const id = req.params.id;
       const updatedMeal = req.body;
 
@@ -240,19 +240,19 @@ async function run() {
       res.send(result);
     });
     // 09.
-    app.post("/reviews", async (req, res) => {
+    app.post("/reviews",verifyFBToken, async (req, res) => {
       const review = req.body;
       const result = await reviewsCollection.insertOne(review);
       res.send(result);
     });
-    app.delete("/reviews/:id", async (req, res) => {
+    app.delete("/reviews/:id",verifyFBToken, async (req, res) => {
       const id = req.params.id;
       const result = await reviewsCollection.deleteOne({
         _id: new ObjectId(id),
       });
       res.send(result);
     });
-    app.put("/reviews/:id", async (req, res) => {
+    app.put("/reviews/:id", verifyFBToken,async (req, res) => {
       const id = req.params.id;
       const updatedReview = req.body; // { comment, rating }
       const result = await reviewsCollection.updateOne(
@@ -290,7 +290,7 @@ async function run() {
       res.send(result);
     });
     // 21.
-    app.patch("/orders/:id", async (req, res) => {
+    app.patch("/orders/:id",verifyFBToken, async (req, res) => {
       const { id } = req.params;
       const { orderStatus, paymentStatus } = req.body;
 
@@ -304,7 +304,7 @@ async function run() {
 
     // ---- favorites api-----------
     // 06.
-    app.post("/favorites", async (req, res) => {
+    app.post("/favorites",verifyFBToken, async (req, res) => {
       const { userEmail, mealId } = req.body;
       const exists = await favoriteCollection.findOne({
         userEmail,
@@ -320,7 +320,7 @@ async function run() {
     });
 
     // 07.
-    app.get("/favorites", async (req, res) => {
+    app.get("/favorites", verifyFBToken,async (req, res) => {
       const email = req.query.email;
       if (!email) {
         return res.status(400).send({ message: "Email is required" });
@@ -332,7 +332,7 @@ async function run() {
     });
 
     // 08.
-    app.delete("/favorites/:id", async (req, res) => {
+    app.delete("/favorites/:id",verifyFBToken, async (req, res) => {
       const id = req.params.id;
       const result = await favoriteCollection.deleteOne({
         _id: new ObjectId(id),
@@ -340,7 +340,7 @@ async function run() {
       res.send(result);
     });
     // ----------payment api ---------
-    app.post("/create-checkout-session", async (req, res) => {
+    app.post("/create-checkout-session",verifyFBToken, async (req, res) => {
       const { orderId, price, quantity } = req.body;
 
       const session = await stripe.checkout.sessions.create({
